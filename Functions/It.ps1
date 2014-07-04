@@ -65,16 +65,23 @@ about_should
         [ScriptBlock] $test = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
     )
 
+    Suspend-CoverageAnalysis -PesterState $pester
+
     $Pester.EnterTest($name)
     Invoke-SetupBlocks
 
     $PesterException = $null
-    try{
+    
+    Resume-CoverageAnalysis -PesterState $pester
+
+    try {
         $null = & $test
     } catch {
         $PesterException = $_
     }
 
+    Suspend-CoverageAnalysis -PesterState $pester
+    
     $Result = Get-PesterResult -Test $Test -Exception $PesterException
     $Pester.AddTestResult($Result.name, $Result.Success, $null, $result.failuremessage, $result.StackTrace )
     $Pester.testresult[-1] | Write-PesterResult

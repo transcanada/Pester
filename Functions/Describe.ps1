@@ -66,8 +66,10 @@ param(
         $script:mockTable = @{}
     }
 
-    if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter))
-    {
+    Suspend-CoverageAnalysis -PesterState $pester
+
+ 	if($Pester.TestNameFilter -and ($Name -notlike $Pester.TestNameFilter)) 
+    { 
         #skip this test
         return
     }
@@ -77,8 +79,10 @@ param(
 
     $Pester.EnterDescribe($Name)
     $Pester.CurrentDescribe | Write-Describe
+
     New-TestDrive
 
+    Resume-CoverageAnalysis -PesterState $pester
     try
     {
         Add-SetupAndTeardown -ScriptBlock $fixture
@@ -91,6 +95,7 @@ param(
         $Pester.TestResult[-1] | Write-PesterResult
     }
 
+    Suspend-CoverageAnalysis -PesterState $pester	
     Clear-SetupAndTeardown
     Remove-TestDrive
     Exit-MockScope

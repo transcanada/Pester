@@ -3,6 +3,8 @@ if ($PSVersionTable.PSVersion.Major -le 2)
     function Exit-CoverageAnalysis { }
     function Get-CoverageReport { }
     function Show-CoverageReport { }
+    function Suspend-CoverageAnalysis { }
+    function Resume-CoverageAnalysis { }
     function Enter-CoverageAnalysis {
         param ( $CodeCoverage )
 
@@ -11,6 +13,9 @@ if ($PSVersionTable.PSVersion.Major -le 2)
 
     return
 }
+
+$script:AnalyzingPesterCoverage = $false
+$script:CoverageIsSuspended = $false
 
 function Enter-CoverageAnalysis
 {
@@ -27,6 +32,7 @@ function Enter-CoverageAnalysis
     }
 
     $PesterState.CommandCoverage = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo)
+    Suspend-CoverageAnalysis -PesterState $PesterState
 }
 
 function Exit-CoverageAnalysis
@@ -40,6 +46,42 @@ function Exit-CoverageAnalysis
     {
         Remove-PSBreakpoint -Breakpoint $breakpoints
     }
+}
+
+function Suspend-CoverageAnalysis
+{
+    param ([object] $PesterState)
+
+    Set-StrictMode -Off
+
+    if (-not $script:AnalyzingPesterCoverage) { return }
+    if ($script:CoverageIsSuspended) { return }
+
+    $breakpoints = $PesterState.CommandCoverage.Breakpoint
+    if ($breakpoints)
+    {
+        Disable-PSBreakpoint -Breakpoint $breakpoints
+    }
+
+    $script:CoverageIsSuspended = $true
+}
+
+function Resume-CoverageAnalysis
+{
+    param ([object] $PesterState)
+
+    Set-StrictMode -Off
+
+    if (-not $script:AnalyzingPesterCoverage) { return }
+    if (-not $script:CoverageIsSuspended) { return }
+
+    $breakpoints = $PesterState.CommandCoverage.Breakpoint
+    if ($breakpoints)
+    {
+        Enable-PSBreakpoint -Breakpoint $breakpoints
+    }
+
+    $script:CoverageIsSuspended = $false
 }
 
 function Get-CoverageInfoFromUserInput

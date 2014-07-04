@@ -40,11 +40,14 @@ param(
     [ValidateNotNull()]
     [ScriptBlock] $fixture = $(Throw "No test script block is provided. (Have you put the open curly brace on the next line?)")
 )
+    Suspend-CoverageAnalysis -PesterState $pester
+
     $Pester.EnterContext($name)
     $TestDriveContent = Get-TestDriveChildItem
 
     $Pester.CurrentContext | Write-Context
 
+    Resume-CoverageAnalysis -PesterState $pester
     try
     {
         Add-SetupAndTeardown -ScriptBlock $fixture
@@ -57,6 +60,7 @@ param(
         $Pester.TestResult[-1] | Write-PesterResult
     }
 
+	Suspend-CoverageAnalysis -PesterState $pester
     Clear-SetupAndTeardown
     Clear-TestDrive -Exclude ($TestDriveContent | select -ExpandProperty FullName)
     Exit-MockScope

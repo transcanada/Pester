@@ -125,6 +125,8 @@ about_pester
 
     $pester = New-PesterState -Path (Resolve-Path $Path) -TestNameFilter $TestName -TagFilter ($Tag -split "\s") -SessionState $PSCmdlet.SessionState
     Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
+    
+    $pester.ResetStopwatch()
 
     $message = "Executing all tests in '$($pester.Path)'"
     if ($TestName) { $message += " matching test name '$TestName'" }

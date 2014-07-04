@@ -35,6 +35,11 @@ function New-PesterState
 
         $script:TestResult = @()
 
+        function ResetStopwatch
+        {
+            $script:Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        }
+
         function EnterDescribe ($Name)
         {
             if ($CurrentDescribe)
@@ -142,7 +147,8 @@ function New-PesterState
         "LeaveDescribe",
         "EnterTest",
         "LeaveTest",
-        "AddTestResult"
+        "AddTestResult",
+        "ResetStopwatch"
 
         Export-ModuleMember -Variable $ExportedVariables -function $ExportedFunctions
     } -ArgumentList $Path, $TagFilter, $TestNameFilter, $SessionState |

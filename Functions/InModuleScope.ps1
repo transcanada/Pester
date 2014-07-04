@@ -18,6 +18,8 @@ function InModuleScope
         $script:mockTable = @{}
     }
 
+    Suspend-CoverageAnalysis -PesterState $pester
+
     try
     {
         $module = Get-Module -Name $ModuleName -All -ErrorAction Stop
@@ -35,11 +37,13 @@ function InModuleScope
         $Pester.SessionState = $module.SessionState
 
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $module.SessionState
+        Resume-CoverageAnalysis -PesterState $pester
 
         & $ScriptBlock
     }
     finally
     {
+        Suspend-CoverageAnalysis -PesterState $pester
         $Pester.SessionState = $originalState
         Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope 
     }
