@@ -169,7 +169,7 @@ function Invoke-Test
     }
 
     $Result = Get-PesterResult -Test $ScriptBlock -Exception $PesterException
-    $Pester.AddTestResult( $Result.name, $Result.Success, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName )
+    $Pester.AddTestResult( $Result.name, $Result.Success, $null, $result.FailureMessage, $result.StackTrace, $ParameterizedSuiteName, $Parameters )
 
     if ($null -ne $OutputScriptBlock)
     {
