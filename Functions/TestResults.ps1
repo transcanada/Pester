@@ -342,6 +342,8 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
         }
 
         $testName = "$DescribeName.$testName"
+
+        $XmlWriter.WriteAttributeString('description', $TestResult.Name)
     }
 
     $XmlWriter.WriteAttributeString('name', $testName)
