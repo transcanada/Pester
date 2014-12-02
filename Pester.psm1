@@ -249,7 +249,12 @@ function Get-StackTrace {
     )
 
     function IsPesterInternal([string]$frame) {
-        return ($frame -match "pester")
+        $moduleBase = Join-Path -Path $ExecutionContext.SessionState.Module.ModuleBase -ChildPath '*'
+        return $frame -like "*$moduleBase" -and -not (IsTestsScript $frame)
+    }
+
+    function IsTestsScript([string]$frame) {
+        return $frame -like '*.Tests.ps1*'
     }
 
     $stackTraceMessageBuilder = New-Object System.Text.StringBuilder
@@ -262,6 +267,8 @@ function Get-StackTrace {
             if(-not (IsPesterInternal $frame)) {
                 [Void]$stackTraceMessageBuilder.AppendLine($frame)
             }
+
+            if (IsTestsScript $frame) { break }
         }
     }
     else {
@@ -269,8 +276,8 @@ function Get-StackTrace {
 
         $callStack = @(Get-PSCallStack)
 
-        [Void]$stackTraceMessageBuilder.AppendLine((Out-String -InputObject $ErrorRecord).Trim())
-        [Void]$stackTraceMessageBuilder.AppendLine("--- Begin StackTrace As Of Exception Catch ---")
+        #[Void]$stackTraceMessageBuilder.AppendLine((Out-String -InputObject $ErrorRecord).Trim())
+        #[Void]$stackTraceMessageBuilder.AppendLine("--- Begin StackTrace As Of Exception Catch ---")
         for($i = 1; $i -lt $callStack.Count; $i++) {
             $frame = $callStack[$i]
 
@@ -282,6 +289,8 @@ function Get-StackTrace {
                 $frame.Command,
                 $frame.ScriptName,
                 $frame.InvocationInfo.ScriptLineNumber))
+
+            if (IsTestsScript $frame.ScriptName) { break }
         }
     }
 
