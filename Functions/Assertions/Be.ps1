@@ -1,6 +1,6 @@
 #Be
 function PesterBe($value, $expected) {
-    return CompareArrays $value $expected
+    return ArraysAreEqual $value $expected
 }
 
 function PesterBeFailureMessage($value, $expected) {
@@ -8,14 +8,14 @@ function PesterBeFailureMessage($value, $expected) {
     $value = ($value)
     $expected = ($expected)
 
-    if (-not (($expected -is [string]) -and ($value -is [string]))) 
+    if (-not (($expected -is [string]) -and ($value -is [string])))
     {
         return "Expected: {$expected}`nBut was:  {$value}"
     }
-    <#joining the output strings to a single string here, otherwise I get 
+    <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
        at line: 63 in C:\Users\nohwnd\github\pester\Functions\Assertions\Should.ps1
-       
+
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
@@ -34,7 +34,7 @@ Add-AssertionOperator -Name                      Be `
 
 #BeExactly
 function PesterBeExactly($value, $expected) {
-    return CompareArrays $value $expected -CaseSensitive
+    return ArraysAreEqual $value $expected -CaseSensitive
 }
 
 function PesterBeExactlyFailureMessage($value, $expected) {
@@ -42,14 +42,14 @@ function PesterBeExactlyFailureMessage($value, $expected) {
     $value = ($value)
     $expected = ($expected)
 
-    if (-not (($expected -is [string]) -and ($value -is [string]))) 
+    if (-not (($expected -is [string]) -and ($value -is [string])))
     {
         return "Expected exactly: {$expected}`nBut was: {$value}"
     }
-    <#joining the output strings to a single string here, otherwise I get 
+    <#joining the output strings to a single string here, otherwise I get
        Cannot find an overload for "Exception" and the argument count: "4".
        at line: 63 in C:\Users\nohwnd\github\pester\Functions\Assertions\Should.ps1
-       
+
     This is a quickwin solution, doing the join in the Should directly might be better
     way of doing this. But I don't want to mix two problems.
     #>
@@ -71,31 +71,31 @@ Add-AssertionOperator -Name                      BeExactly `
 function Get-CompareStringMessage {
     param(
         [Parameter(Mandatory=$true)]
-        [String]$Expected, 
+        [String]$Expected,
         [Parameter(Mandatory=$true)]
         [String]$Actual,
         [switch]$CaseSensitive
     )
-    
+
     $expectedLength = $expected.Length
     $actualLength = $actual.Length
     $maxLength = $expectedLength,$actualLength | Sort -Descending | select -First 1
-    
-    $differenceIndex = $null 
+
+    $differenceIndex = $null
     for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i){
-        $differenceIndex = if ($CaseSensitive -and ($expected[$i] -cne $actual[$i])) 
+        $differenceIndex = if ($CaseSensitive -and ($expected[$i] -cne $actual[$i]))
         {
             $i
         }
-        elseif ($expected[$i] -ne $actual[$i]) 
+        elseif ($expected[$i] -ne $actual[$i])
         {
             $i
-        }     
+        }
     }
-    
+
     [string]$output = $null
     if ($null -ne $differenceIndex)
-    {   
+    {
         if ($expected.Length -ne $actual.Length) {
            "Expected string length $expectedLength but was $actualLength. Strings differ at index $differenceIndex."
         }
@@ -103,18 +103,18 @@ function Get-CompareStringMessage {
         {
            "String lengths are both $expectedLength. Strings differ at index $differenceIndex."
         }
-        
-        
+
+
         "Expected: {{{0}}}" -f ( $expected | Expand-SpecialCharacters )
         "But was:  {{{0}}}" -f ( $actual | Expand-SpecialCharacters )
-        
+
         $specialCharacterOffset = $null
         if ($differenceIndex -ne 0)
         {
             #count all the special characters before the difference
-            $specialCharacterOffset = ($actual[0..($differenceIndex-1)] | 
-                Where {"`n","`r","`t","`b","`0" -contains $_} | 
-                Measure-Object | 
+            $specialCharacterOffset = ($actual[0..($differenceIndex-1)] |
+                Where {"`n","`r","`t","`b","`0" -contains $_} |
+                Measure-Object |
                 select -ExpandProperty Count)
         }
 
@@ -125,39 +125,64 @@ function Get-CompareStringMessage {
 function Expand-SpecialCharacters {
     param (
     [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
-    [string[]]$InputObject) 
+    [string[]]$InputObject)
     process {
         $InputObject -replace "`n","\n" -replace "`r","\r" -replace "`t","\t" -replace "`0", "\0" -replace "`b","\b"
     }
 }
 
-function CompareArrays
+function ArraysAreEqual
 {
     param (
-        [object[]] $Actual,
-        [object[]] $Expected,
+        [object[]] $First,
+        [object[]] $Second,
         [switch] $CaseSensitive
     )
 
-    if ($null -eq $Expected)
+    if ($null -eq $First -or $First.Count -eq 0 -or ($First.Count -eq 1 -and $null -eq $First[0]))
     {
-        return $null -eq $Actual -or $Actual.Count -eq 0 -or ($Actual.Count -eq 1 -and $null -eq $Actual[0])
+        $null -eq $Second -or $Second.Count -eq 0 -or ($Second.Count -eq 1 -and $null -eq $Second[0])
     }
 
-    $params = @{ SyncWindow = 0 }
-    if ($CaseSensitive)
+    if ($First.Count -ne $Second.Count) { return $false }
+
+    for ($i = 0; $i -lt $First.Count; $i++)
     {
-        $params['CaseSensitive'] = $true
+        if ((IsCollection $First[$i]) -or (IsCollection $Second[$i]))
+        {
+            if (-not (ArraysAreEqual -First $First[$i] -Second $Second[$i] -CaseSensitive:$CaseSensitive))
+            {
+                return $false
+            }
+        }
+        else
+        {
+            if ($CaseSensitive)
+            {
+                $comparer = { $args[0] -ceq $args[1] }
+            }
+            else
+            {
+                $comparer = { $args[0] -eq $args[1] }
+            }
+
+            if (-not (& $comparer $First[$i] $Second[$i]))
+            {
+                return $false
+            }
+        }
     }
 
-    $placeholderForNull = New-Object object
+    return $true
+}
 
-    $Actual   = @(ReplaceValueInArray -Array $Actual -Value $null -NewValue $placeholderForNull)
-    $Expected = @(ReplaceValueInArray -Array $Expected -Value $null -NewValue $placeholderForNull)
+function IsCollection
+{
+    param ([object] $InputObject)
 
-    $arraysAreEqual = ($null -eq (Compare-Object $Actual $Expected @params))
-
-    return $arraysAreEqual
+    return $InputObject -is [System.Collections.IEnumerable] -and
+           $InputObject -isnot [string] -and
+           $InputObject -isnot [System.Collections.IDictionary]
 }
 
 function ReplaceValueInArray

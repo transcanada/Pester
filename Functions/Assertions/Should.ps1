@@ -79,7 +79,8 @@ function Should {
 
     end
     {
-        $inputArray = @(foreach ($object in $input) { $object })
+        $inputArray = New-Object System.Collections.ArrayList
+        foreach ($object in $input) { $null = $inputArray.Add($object) }
 
         if ($inputArray.Count -eq 0)
         {
@@ -87,7 +88,7 @@ function Should {
         }
         if ($entry.SupportsArrayInput)
         {
-            Invoke-Assertion $entry $parsedArgs $inputArray $MyInvocation.ScriptLineNumber
+            Invoke-Assertion $entry $parsedArgs $inputArray.ToArray() $MyInvocation.ScriptLineNumber
         }
         else
         {
